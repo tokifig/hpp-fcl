@@ -94,6 +94,8 @@ class HPP_FCL_DLLAPI OcTree : public CollisionGeometry {
 
   OcTree* clone() const { return new OcTree(*this); }
 
+  std::pair<std::vector<boost::array<FCL_REAL, 3>>, std::vector<boost::array<std::size_t, 4>>> computeMesh() const;
+
   void exportAsObjFile(const std::string& filename) const;
 
   /// @brief compute the AABB for the octree in its local coordinate system

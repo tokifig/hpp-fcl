@@ -104,17 +104,15 @@ void computeNeighbors(const std::vector<boost::array<FCL_REAL, 6> >& boxes,
 
 }  // namespace internal
 
-void OcTree::exportAsObjFile(const std::string& filename) const {
+std::pair<std::vector<boost::array<FCL_REAL, 3>>, std::vector<boost::array<std::size_t, 4>>> OcTree::computeMesh() const {
   std::vector<boost::array<FCL_REAL, 6> > boxes(this->toBoxes());
   std::vector<internal::Neighbors> neighbors(boxes.size());
   internal::computeNeighbors(boxes, neighbors);
   // compute list of vertices and faces
 
-  typedef std::vector<Vec3f> VectorVec3f;
-  std::vector<Vec3f> vertices;
+  std::vector<boost::array<FCL_REAL, 3>> vertices;
 
   typedef boost::array<std::size_t, 4> Array4;
-  typedef std::vector<Array4> VectorArray4;
   std::vector<Array4> faces;
 
   for (std::size_t i = 0; i < boxes.size(); ++i) {
@@ -126,14 +124,14 @@ void OcTree::exportAsObjFile(const std::string& filename) const {
     FCL_REAL z(box[2]);
     FCL_REAL size(box[3]);
 
-    vertices.push_back(Vec3f(x - .5 * size, y - .5 * size, z - .5 * size));
-    vertices.push_back(Vec3f(x + .5 * size, y - .5 * size, z - .5 * size));
-    vertices.push_back(Vec3f(x - .5 * size, y + .5 * size, z - .5 * size));
-    vertices.push_back(Vec3f(x + .5 * size, y + .5 * size, z - .5 * size));
-    vertices.push_back(Vec3f(x - .5 * size, y - .5 * size, z + .5 * size));
-    vertices.push_back(Vec3f(x + .5 * size, y - .5 * size, z + .5 * size));
-    vertices.push_back(Vec3f(x - .5 * size, y + .5 * size, z + .5 * size));
-    vertices.push_back(Vec3f(x + .5 * size, y + .5 * size, z + .5 * size));
+    vertices.push_back({x - .5 * size, y - .5 * size, z - .5 * size});
+    vertices.push_back({x + .5 * size, y - .5 * size, z - .5 * size});
+    vertices.push_back({x - .5 * size, y + .5 * size, z - .5 * size});
+    vertices.push_back({x + .5 * size, y + .5 * size, z - .5 * size});
+    vertices.push_back({x - .5 * size, y - .5 * size, z + .5 * size});
+    vertices.push_back({x + .5 * size, y - .5 * size, z + .5 * size});
+    vertices.push_back({x - .5 * size, y + .5 * size, z + .5 * size});
+    vertices.push_back({x + .5 * size, y + .5 * size, z + .5 * size});
 
     // Add face only if box has no neighbor with the same face
     if (!n.minusX()) {
@@ -161,6 +159,19 @@ void OcTree::exportAsObjFile(const std::string& filename) const {
       faces.push_back(a);
     }
   }
+
+  return std::make_pair(vertices, faces);
+}
+
+void OcTree::exportAsObjFile(const std::string& filename) const {
+  typedef std::vector<boost::array<FCL_REAL, 3>> VectorVec3f;
+  typedef boost::array<std::size_t, 4> Array4;
+  typedef std::vector<Array4> VectorArray4;
+
+  const auto vertices_faces = computeMesh();
+  const std::vector<boost::array<FCL_REAL, 3>>& vertices = vertices_faces.first;
+  const std::vector<boost::array<std::size_t, 4>>& faces = vertices_faces.second;
+
   // write obj in a file
   std::ofstream os;
   os.open(filename);
@@ -171,7 +182,7 @@ void OcTree::exportAsObjFile(const std::string& filename) const {
   os << "# list of vertices\n";
   for (VectorVec3f::const_iterator it = vertices.begin(); it != vertices.end();
        ++it) {
-    const Vec3f& v = *it;
+    const auto& v = *it;
     os << "v " << v[0] << " " << v[1] << " " << v[2] << '\n';
   }
   os << "\n# list of faces\n";
